@@ -10,3 +10,16 @@
     color: #fff;
     background: #CCC;
 }
+.card-body{
+    font-size: 14px;
+}
+
+.error{
+    color:red;
+    font-size: 12px;
+}
+
+.btn-stl{
+    font-size: 12px;
+    float: right;
+}
