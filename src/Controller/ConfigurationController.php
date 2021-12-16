@@ -137,13 +137,14 @@ class ConfigurationController extends AbstractController
         $newrow = 2;
         foreach ($cells as $key => $value) {
             if($filetype == 1){
-                $documentDate = $worksheet->getCell("C".$key)->getValue();
-    
+                $formateDate = $worksheet->getCell("C".$key)->getFormattedValue();
+                $documentDate = date('d-m-Y', strtotime($formateDate));
+                
                 $GSTNo = $worksheet->getCell("G".$key)->getValue();
                 $InvoiceNo = $worksheet->getCell("J".$key)->getValue();
                 $InvoiceValue = $worksheet->getCell("E".$key)->getValue();
                 $TaxValue = $worksheet->getCell("O".$key)->getValue();
-                $supplier = $worksheet->getCell("H".$key)->getValue();
+                $supplier = $worksheet->getCell("F".$key)->getValue();
 
                 $IGSTValue = $worksheet->getCell("P".$key)->getValue();
                 $CGSTValue = $worksheet->getCell("S".$key)->getValue();
@@ -156,7 +157,7 @@ class ConfigurationController extends AbstractController
                 
                 $InvoiceValue = $worksheet->getCell("F".$key)->getValue();
                 $TaxValue = $worksheet->getCell("J".$key)->getValue();
-                $supplier = $worksheet->getCell("G".$key)->getValue();
+                $supplier = $worksheet->getCell("B".$key)->getValue();
 
                 $IGSTValue = $worksheet->getCell("K".$key)->getValue();
                 $CGSTValue = $worksheet->getCell("L".$key)->getValue();
@@ -212,6 +213,7 @@ class ConfigurationController extends AbstractController
         $excelsheet2 = array();
        
         $worksheet1 = $spreadsheet1->getActiveSheet();
+        $rowkey = 0;
         foreach ($worksheet1->getRowIterator() as $row) {
             $rowIndex = $row->getRowIndex();
             $cellIterator = $row->getCellIterator();
@@ -221,14 +223,19 @@ class ConfigurationController extends AbstractController
             foreach ($cellIterator as $cell) {
                 if($rowIndex > 1){
                     $columnValue = $worksheet1->getCell($columnLetter.$columnIndex)->getValue();
-                    $excelsheet[$rowIndex][$columnValue] = $cell->getCalculatedValue();
-                    $columnLetter++;  
+                    $excelsheet[$rowkey][$columnValue] = $cell->getCalculatedValue();
+                    $columnLetter++;
+                    
                 }
                
-            }   
+            }
+            if($rowIndex > 1){
+                $rowkey++;      
+            } 
         }
 
         $worksheet2 = $spreadsheet2->getActiveSheet();
+        $rowkey1 = 0;
         foreach ($worksheet2->getRowIterator() as $row2) {
             $rowIndex2 = $row2->getRowIndex();
             $cellIterator2 = $row2->getCellIterator();
@@ -238,24 +245,80 @@ class ConfigurationController extends AbstractController
             foreach ($cellIterator2 as $cell2) {
                 if($rowIndex2 > 1){
                     $columnValue2 = $worksheet2->getCell($columnLetter2.$columnIndex2)->getValue();
-                    $excelsheet2[$rowIndex2][$columnValue2] = $cell2->getCalculatedValue();
+                    $excelsheet2[$rowkey1][$columnValue2] = $cell2->getCalculatedValue();
                     $columnLetter2++;  
                 }
                
-            }   
+            } 
+            if($rowIndex2 > 1){
+                $rowkey1++;      
+            }
         }
 
+        $matchedList = array();
+        $NotmactedList = array();
+        // echo"<pre>";
+        // //print_r($excelsheet);
+        // //print_r($excelsheet2);
+
+        if(count($excelsheet) > 0){
+            $matchedkey = 0;
+            $unmatchedkey = 0;
+            foreach ($excelsheet as $key => $excelsheet_value) {
+                    $gstNumber = $excelsheet_value['GST-NO'];
+                    $supplier = $excelsheet_value['Invoice-NO'];
+                    $documentDate = $excelsheet_value['Document-Date'];
+                    $searchResult1 = array_search($gstNumber, array_column($excelsheet2, 'GST-NO'));
+                    $searchResult2 = array_search($supplier, array_column($excelsheet2, 'Invoice-NO'));
+                    $searchResult3 = array_search($documentDate, array_column($excelsheet2, 'Document-Date'));
+                   
+                    if((!empty($searchResult1) && !empty($searchResult2)) && !empty($searchResult3)){
+                        
+                        $matchedList[$matchedkey]['Retail'] = $excelsheet_value;  
+                        $matchedList[$matchedkey]['GST'] = $excelsheet2[$searchResult1]; 
+
+                        $matchedkey++;
+                        
+                    } else{
+                        $NotmactedList[$unmatchedkey]['Retail'] = $excelsheet_value; 
+                        $unmatchedkey++;
+                    }
+                    
+            }
+        }
+        //print_r($matchedList);
+
+        $resultDate[0]['Matched'] = $matchedList;
+        $resultDate[0]['Not_Matched'] = $NotmactedList;
+
+        //$difference = $this->array_diff_assoc_recursive($excelsheet, $excelsheet2); 
 
 
-
-        echo "<pre>";
-        print_r($excelsheet);
-        print_r($excelsheet);
+       
+        //print_r($difference);
+        //print_r($excelsheet2);
 
         return $resultDate;
 
     }
 
+    protected function array_diff_assoc_recursive($array1, $array2) {
+        $difference=array();
+        foreach($array1 as $key => $value) {
+            if( is_array($value) ) {
+                if( !isset($array2[$key]) || !is_array($array2[$key]) ) {
+                    $difference[$key] = $value;
+                } else {
+                    $new_diff = $this->array_diff_assoc_recursive($value, $array2[$key]);
+                    if( !empty($new_diff) )
+                        $difference[$key] = $new_diff;
+                }
+            } else if( !array_key_exists($key,$array2) || $array2[$key] !== $value ) {
+                $difference[$key] = $value;
+            }
+        }
+        return $difference;
+    }
 
 
     protected function loadFile($filename)
