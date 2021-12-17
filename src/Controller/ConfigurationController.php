@@ -43,43 +43,56 @@ class ConfigurationController extends AbstractController
      */
     public function removeDuplicateRecordInSpreadSheet(Request $request)
     {   
-        $filetype = $request->get('file_type');
         $data = [];
         $uploadDir = $this->getParameter('upload_directory');
         try {
-            $ext = pathinfo($_FILES["excel_file"]["name"], PATHINFO_EXTENSION);
-            $target_file = $uploadDir . basename($_FILES["excel_file"]["name"]);
             
-            if (move_uploaded_file($_FILES["excel_file"]["tmp_name"], $target_file)) {
-                $message =  "The file ". htmlspecialchars( basename( $_FILES["excel_file"]["name"])). " has been uploaded.";
+            //Retail Expense
+            $filetype =1 ;
+            $ext = pathinfo($_FILES["expense_sheet"]["name"], PATHINFO_EXTENSION);
+            $target_file = $uploadDir . basename($_FILES["expense_sheet"]["name"]);
+            
+            if (move_uploaded_file($_FILES["expense_sheet"]["tmp_name"], $target_file)) {
+                $message =  "The file ". htmlspecialchars( basename( $_FILES["expense_sheet"]["name"])). " has been uploaded.";
             }
-
             $spreadsheet = $this->readFile($target_file);
+            $newFileName = $uploadDir .'Retail.xlsx';
+            if(file_exists($newFileName)){
+                unlink($newFileName);
+            } 
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($target_file);
+            $duplicateCells = $this->removeUniqueRows($spreadsheet, $filetype);
+            $createNewExcel = $this->createNewExcelForRetailExpense($spreadsheet, $newFileName, $duplicateCells, $filetype);
 
-            if($filetype == 1){
-                $newFileName = $uploadDir .'Retail.xlsx';
-                if(file_exists($newFileName)){
-                    unlink($newFileName);
-                } 
-                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($target_file);
-                $duplicateCells = $this->removeUniqueRows($spreadsheet, $filetype);
-                $createNewExcel = $this->createNewExcelForRetailExpense($spreadsheet, $newFileName, $duplicateCells, $filetype);
-            } else{
-                $newFileName = $uploadDir .'GST.xlsx';
-                if(file_exists($newFileName)){
-                    unlink($newFileName);
-                } 
-                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($target_file);
-                $duplicateCells = $this->removeUniqueRows($spreadsheet, $filetype);
-                $createNewExcel = $this->createNewExcelForRetailExpense($spreadsheet, $newFileName, $duplicateCells, $filetype);
+            // GST sheet 
+            $filetype2 =2;
+            $GSText = pathinfo($_FILES["gst_sheet"]["name"], PATHINFO_EXTENSION);
+            $gsttarget_file = $uploadDir . basename($_FILES["gst_sheet"]["name"]);
+            
+            if (move_uploaded_file($_FILES["gst_sheet"]["tmp_name"], $target_file)) {
+                $message .="The file ". htmlspecialchars( basename( $_FILES["gst_sheet"]["name"])). " has been uploaded.";
             }
+            $newFileNameForGST = $uploadDir .'GST.xlsx';
+            if(file_exists($newFileNameForGST)){
+                unlink($newFileNameForGST);
+            } 
+            $spreadsheetGST = \PhpOffice\PhpSpreadsheet\IOFactory::load($gsttarget_file);
+            $duplicateCellforGst = $this->removeUniqueRows($spreadsheetGST, $filetype2);
+            $createNewExcel = $this->createNewExcelForRetailExpense($spreadsheetGST, $newFileNameForGST, $duplicateCells, $filetype2);
+             // GST sheet 
 
-            $data[] = [
-            "status" => $message,
-            "filetype" => $filetype,
-            "extension" => $ext,
-            "exceldata" => $duplicateCells,
-            "excel_status" => $createNewExcel
+
+
+            // Compare the result
+            $retailFile = $uploadDir .'Retail.xlsx';
+            $GSTfile = $uploadDir .'GST.xlsx';
+            $result = $this->compareExcel($retailFile, $GSTfile);
+            $data = [
+                "resp" => "ok",
+                "status" => $message,
+                "Retail_data" => $duplicateCells,
+                "gst_data" => $duplicateCellforGst,
+                "result" => $result
             ];
 
         }
@@ -288,8 +301,8 @@ class ConfigurationController extends AbstractController
         }
         //print_r($matchedList);
 
-        $resultDate[0]['Matched'] = $matchedList;
-        $resultDate[0]['Not_Matched'] = $NotmactedList;
+        $resultDate['Matched'] = $matchedList;
+        $resultDate['Not_Matched'] = $NotmactedList;
 
         //$difference = $this->array_diff_assoc_recursive($excelsheet, $excelsheet2); 
 

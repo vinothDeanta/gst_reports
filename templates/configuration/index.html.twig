@@ -14,24 +14,40 @@
     <div class="container pt-45">
         <div class="card">
             <div class="card-header header-title">
-                GST EXCEL COMPARISON
+                TESTING
             </div>  
             <div class="card-body">
-                <div class="d-flex justify-content-center">
+                <div class="d-flex justify-content-center upload-div">
                 <h5 class="card-title "></h5>
                     <form id="tax_form" method="post" enctype="multipart/form-data">
                        <div class="form-group">
-                            <label for="exampleInputEmail1">Expense Sheet</label>
-                            <input type="file" class="form-control-file" id="expense_sheet" name="expense_sheet" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+                            <label for="exampleInputEmail1" class="label-cls">Expense Sheet</label>
+                            <input type="file" class="form-control-file input-cls" id="expense_sheet" name="expense_sheet" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
                         </div>
                          <div class="form-group">
-                            <label for="exampleInputEmail1">GST Portal Sheet</label>
-                            <input type="file" class="form-control-file" id="gst_sheet" name="gst_sheet" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+                            <label for="exampleInputEmail1" class="label-cls">GST Portal Sheet</label>
+                            <input type="file" class="form-control-file input-cls" id="gst_sheet" name="gst_sheet" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
                         </div>
+                        <div class="form-group">
+                            <div class="progress">
+                                <div class="progress-bar"></div>
+                            </div>
+                            <div id="uploadStatus"></div>
+                        </div>
+
                         <button type="submit"  class="btn btn-primary btn-sm btn-stl">Submit</button>
+                       
                   </form>
                 </div>
+
+               
+
+
             </div>
+        </div>
+
+        <div id="responce">
+
         </div>
        
 
@@ -91,23 +107,77 @@
                     formDate.append("expense_sheet", expense_sheet); 
                     formDate.append("gst_sheet", gst_sheet); 
                      $.ajax({
-                            url: '/call/upload/spreadsheet',	
+                             xhr: function() {
+                                var xhr = new window.XMLHttpRequest();
+                                xhr.upload.addEventListener("progress", function(evt) {
+                                    if (evt.lengthComputable) {
+                                        var percentComplete = ((evt.loaded / evt.total) * 100);
+                                        $(".progress-bar").width(percentComplete + '%');
+                                        $(".progress-bar").html(percentComplete+'%');
+                                    }
+                                }, false);
+                                return xhr;
+                            },
+                            url: '/call/remove/duplicate/record',	
                             type: 'POST',
                             data : formDate,
                             processData: false,
                             contentType: false,
-                            beforeSend: function() 
-                            {
-                                console.log('loading');
+                            beforeSend: function(){
+                                $(".progress-bar").width('0%');
+                                $('#uploadStatus').html('<img src="{{ asset('images/loading.gif') }}"/>');
+                            },
+                            error:function(){
+                                $('#uploadStatus').html('<p style="color:#EA4335;">File upload failed, please try again.</p>');
                             },
                             success: function(response) 
-                            {
-                                console.log(data);
-                            },
-                            error: function(jqXHR, textStatus, errorThrown)
-                            {
-                                alert("Error"); 
+                            {   
+                                console.log(response);
+                                var obj = $.parseJSON(JSON.stringify(response));
+                                if(obj.resp == "ok"){
+                                    $('#uploadStatus').html('<p style="color:#28A74B;">File has uploaded successfully!</p>');
+                                   
+                                    $("#responce").html('<h3 class="res-title"> Matched Records </h3>');
+                                    $("#responce").append('<table class="table table-bordered" id="matched">');
+                                    $.map(obj.result.Matched, function(data, index) { 
+                                       console.log(data.Retail);
+                                            var tableIndex = 0;
+                                            $("#matched").append("<thead id='retailhead"+index+"'></thead>");
+                                            $("#matched").append("<tr id='retailindex"+index+"'></tr>");
+                                            $.map(data.Retail, function(item, i) { 
+                                                console.log(i+"---"+item);
+                                                $("#retailhead"+index).append("<th>"+i+"</th>");
+                                                $("#retailindex"+index).append("<td>"+item+"</td>");
+                                                
+                                            });
+
+                                             $.map(data.GST, function(gstitem, j) { 
+                                                
+                                                $("#retailhead"+index).append("<th>"+j+"</th>");
+                                                $("#retailindex"+index).append("<td>"+gstitem+"</td>");
+                                                
+                                            });
+                                    });
+
+                                    $("#responce").append('<h3 class="res-title"> Un-Matched Records </h3>');
+                                    $("#responce").append('<table class="table table-bordered" id="unmatched">');
+                                    $.map(obj.result.Not_Matched, function(data1, index) { 
+                                       console.log(data1.Retail);
+                                            var tableIndex = 0;
+                                            $("#unmatched").append("<thead id='retailhead"+index+"'></thead>");
+                                            $("#unmatched").append("<tr id='retailindex"+index+"'></tr>");
+                                            $.map(data1.Retail, function(item, i) { 
+                                                if(index == 1){
+                                                    $("#retailhead"+index).append("<th>"+i+"</th>");
+                                                }
+                                                $("#retailindex"+index).append("<td>"+item+"</td>");
+                                                
+                                            });
+                                    });
+
+                                } 
                             }
+                            
                         });
                 }
            }); 
