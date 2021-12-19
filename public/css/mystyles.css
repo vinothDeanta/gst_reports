@@ -106,7 +106,7 @@
 
 .progress {
     display: -ms-flexbox;
-    display: flex;
+    display: none;
     height: 20px;
     overflow: hidden;
     font-size: .75rem;
@@ -138,9 +138,12 @@
 	text-align: center;
 }
 
-#responce{
+#responce, #responce-unmatched{
     overflow-x: auto;
     margin-top: 20px;
+}
+.separation {
+    background: #f3f3f3;
 }
 
 .res-title{
