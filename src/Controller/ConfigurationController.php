@@ -270,10 +270,7 @@ class ConfigurationController extends AbstractController
 
         $matchedList = array();
         $NotmactedList = array();
-        // echo"<pre>";
-        // //print_r($excelsheet);
-        // //print_r($excelsheet2);
-
+    
         if(count($excelsheet) > 0){
             $matchedkey = 0;
             $unmatchedkey = 0;
@@ -281,16 +278,39 @@ class ConfigurationController extends AbstractController
                     $gstNumber = $excelsheet_value['GST-NO'];
                     $supplier = $excelsheet_value['Invoice-NO'];
                     $documentDate = $excelsheet_value['Document-Date'];
+
+                   
                     $searchResult1 = array_search($gstNumber, array_column($excelsheet2, 'GST-NO'));
                     $searchResult2 = array_search($supplier, array_column($excelsheet2, 'Invoice-NO'));
                     $searchResult3 = array_search($documentDate, array_column($excelsheet2, 'Document-Date'));
                    
                     if((!empty($searchResult1) && !empty($searchResult2)) && !empty($searchResult3)){
                         
-                        $matchedList[$matchedkey]['Retail'] = $excelsheet_value;  
-                        $matchedList[$matchedkey]['GST'] = $excelsheet2[$searchResult1]; 
+                        $Invoice_Value = $excelsheet_value['Invoice-Value'];
+                        $tax_Value = $excelsheet_value['Tax-Value'];
+                        $SGST_amount = $excelsheet_value['SGST AMT'];
+                        $CGST_amount = $excelsheet_value['CGST AMT'];
+                        $IGST_amount = $excelsheet_value['IGST AMT'];
 
-                        $matchedkey++;
+                        $sh2_Invoice_Value = $excelsheet2[$searchResult1]['Invoice-Value'];
+                        $sh2_tax_Value =   $excelsheet2[$searchResult1]['Tax-Value'];
+                        $sh2_SGST_amount = $excelsheet2[$searchResult1]['SGST AMT'];
+                        $sh2_CGST_amount = $excelsheet2[$searchResult1]['CGST AMT'];
+                        $sh2_IGST_amount = $excelsheet2[$searchResult1]['IGST AMT'];
+
+                        if($this->abs_diff($Invoice_Value, $sh2_Invoice_Value) > 2 || $this->abs_diff($tax_Value, $sh2_tax_Value) > 2  || $this->abs_diff($SGST_amount, $sh2_SGST_amount) || $this->abs_diff($CGST_amount, $sh2_CGST_amount) || $this->abs_diff($IGST_amount, $sh2_IGST_amount) ){
+
+                            $NotmactedList[$unmatchedkey]['Retail'] = $excelsheet_value; 
+                            $unmatchedkey++;
+
+
+                        } else{
+
+                            $matchedList[$matchedkey]['Retail'] = $excelsheet_value;  
+                            $matchedList[$matchedkey]['GST'] = $excelsheet2[$searchResult1]; 
+
+                            $matchedkey++;
+                        }
                         
                     } else{
                         $NotmactedList[$unmatchedkey]['Retail'] = $excelsheet_value; 
@@ -314,6 +334,12 @@ class ConfigurationController extends AbstractController
         return $resultDate;
 
     }
+
+    private function abs_diff($v1, $v2) {
+        $diff = $v1 - $v2;
+        return $diff < 0 ? (-1) * $diff : $diff;
+    }
+    
 
     protected function array_diff_assoc_recursive($array1, $array2) {
         $difference=array();
@@ -385,54 +411,6 @@ class ConfigurationController extends AbstractController
         }
 
         return $spreadsheet;
-
-            // foreach ($worksheet->getRowIterator() as $row) {
-            //     $rowIndex = $row->getRowIndex();
-            //     $cellIterator = $row->getCellIterator();
-            //     $cellIterator->setIterateOnlyExistingCells(false);
-            //     foreach ($cellIterator as $cell) {
-            //         if ($rowIndex > 8) {
-            //             //$cellValue = $worksheet->getCell('G8')->getValue();
-            //             $data['columnValues'][$rowIndex][] = $cell->getCalculatedValue();
-            //         }
-            //     }
-            //    // array_push($cells, $cellValue); 
-            // }
-            //$highestRow = $spreadsheet->getActiveSheet()->getHighestRow();
-
-            // $data['G8'] = $spreadsheet->getActiveSheet()->rangeToArray(
-            //     'G7',     // The worksheet range that we want to retrieve
-            //     NULL,        // Value that should be returned for empty cells
-            //     TRUE,        // Should formulas be calculated (the equivalent of getCalculatedValue() for each cell)
-            //     TRUE,        // Should values be formatted (the equivalent of getFormattedValue() for each cell)
-            //     TRUE         // Should the array be indexed by cell row and cell column
-            // );
-            // $worksheetTitle = $worksheet->getTitle();
-            // $data[$worksheetTitle] = [
-            //     'columnNames' => [],
-            //     'columnValues' => [],
-            // ];
-            // foreach ($worksheet->getRowIterator() as $row) {
-            //     $rowIndex = $row->getRowIndex();
-            //     if ($rowIndex > 2) {
-            //         $data[$worksheetTitle]['columnValues'][$rowIndex] = [];
-            //     }
-            //     $cellIterator = $row->getCellIterator();
-            //     $cellIterator->setIterateOnlyExistingCells(false); // Loop over all cells, even if it is not set
-            //     foreach ($cellIterator as $cell) {
-            //         if ($rowIndex === 2) {
-            //             $data[$worksheetTitle]['columnNames'][] = $cell->getCalculatedValue();
-            //         }
-            //         if ($rowIndex > 2) {
-            //             $data[$worksheetTitle]['columnValues'][$rowIndex][] = $cell->getCalculatedValue();
-            //         }
-            //     }
-            // }
-        // }
-
-        // $data = $cell;
-
-        // return $data;
     }
 }
 

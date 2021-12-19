@@ -49,6 +49,10 @@
         <div id="responce">
 
         </div>
+
+         <div id="responce-unmatched">
+
+        </div>
        
 
     </div>
@@ -106,6 +110,7 @@
                     var gst_sheet = $("#gst_sheet").prop("files")[0]; 
                     formDate.append("expense_sheet", expense_sheet); 
                     formDate.append("gst_sheet", gst_sheet); 
+                    $(".progress").show();
                      $.ajax({
                              xhr: function() {
                                 var xhr = new window.XMLHttpRequest();
@@ -136,38 +141,43 @@
                                 var obj = $.parseJSON(JSON.stringify(response));
                                 if(obj.resp == "ok"){
                                     $('#uploadStatus').html('<p style="color:#28A74B;">File has uploaded successfully!</p>');
+                                    $('#uploadStatus').append('<p style="color:#28A74B;">File Compare is Started..</p>');
                                    
                                     $("#responce").html('<h3 class="res-title"> Matched Records </h3>');
                                     $("#responce").append('<table class="table table-bordered" id="matched">');
                                     $.map(obj.result.Matched, function(data, index) { 
                                        console.log(data.Retail);
                                             var tableIndex = 0;
-                                            $("#matched").append("<thead id='retailhead"+index+"'></thead>");
-                                            $("#matched").append("<tr id='retailindex"+index+"'></tr>");
+                                            $("#matched").append("<thead id='rh_matched"+index+"'></thead>");
+                                            $("#matched").append("<tr id='rd_index"+index+"'></tr>");
                                             $.map(data.Retail, function(item, i) { 
                                                 console.log(i+"---"+item);
-                                                $("#retailhead"+index).append("<th>"+i+"</th>");
-                                                $("#retailindex"+index).append("<td>"+item+"</td>");
+                                                $("#rh_matched"+index).append("<th>"+i+"</th>");
+                                                $("#rd_index"+index).append("<td>"+item+"</td>");
                                                 
                                             });
+                                            $("#rh_matched"+index).append("<th class='separation'></th>");
+                                            $("#rd_index"+index).append("<td class='separation'></td>");
 
                                              $.map(data.GST, function(gstitem, j) { 
-                                                
-                                                $("#retailhead"+index).append("<th>"+j+"</th>");
-                                                $("#retailindex"+index).append("<td>"+gstitem+"</td>");
+                                                $("#rh_matched"+index).append("<th>"+j+"</th>");
+                                                $("#rd_index"+index).append("<td>"+gstitem+"</td>");
                                                 
                                             });
                                     });
 
-                                    $("#responce").append('<h3 class="res-title"> Un-Matched Records </h3>');
-                                    $("#responce").append('<table class="table table-bordered" id="unmatched">');
+
+
+
+                                    $("#responce-unmatched").append('<h3 class="res-title"> Un-Matched Records </h3>');
+                                    $("#responce-unmatched").append('<table class="table table-bordered" id="unmatched">');
                                     $.map(obj.result.Not_Matched, function(data1, index) { 
                                        console.log(data1.Retail);
                                             var tableIndex = 0;
                                             $("#unmatched").append("<thead id='retailhead"+index+"'></thead>");
                                             $("#unmatched").append("<tr id='retailindex"+index+"'></tr>");
                                             $.map(data1.Retail, function(item, i) { 
-                                                if(index == 1){
+                                                if(index == 0){
                                                     $("#retailhead"+index).append("<th>"+i+"</th>");
                                                 }
                                                 $("#retailindex"+index).append("<td>"+item+"</td>");
